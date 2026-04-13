@@ -16,7 +16,19 @@
 -- loop playhead indicator
 -- erase_strength selector
 --
+-- TODO 
+-- everything
+-- will like to refactor alot of this
+-- to do more iterative and indexed 
+-- functions (see bottom of script for more info)
+-- many functions perform the same exact
+-- operations, just on different parameters
+-- there should be a way to make it all
+-- less verbose
+--
 ----------------
+
+local musicutil = include 'lib/0___0_musicutil'
 
 With = 1      -- can be 1 or 2 determines which W/ gets commands
 
@@ -181,7 +193,14 @@ g.key = function(x,y,z)
         print(wRecLevel[With])
       end
     end
-    
+ 
+     if y == 3 then
+      if x > 5 then
+        wMonLevel[With] = x
+        monLevel(With,x)
+        print(wMonLevel[With])
+      end
+    end   
    
     -- call to update grid lights
     Lights()
@@ -234,7 +253,11 @@ function Lights()
     g:led(5+i,4,3)
   end
   
-  
+ -- iterate through monLevel strength indicator and zero it out
+  for i = 1, 11 do 
+    g:led(5+i,3,3)
+  end
+   
   
   
 -- then write the current value
@@ -252,7 +275,16 @@ function Lights()
     g:led(wRecLevel[2],4, wWith[2]*12+3) -- display brightness based on With when not stacked
     g:led(wRecLevel[1],4, wWith[1]*12+3)
   end
-  
+ 
+ 
+  if wMonLevel[1] == wMonLevel[2] then --check if value is equal/stacked and display full brightness
+    g:led(wMonLevel[2],3, 1*12+3)
+  else
+    g:led(wMonLevel[2],3, wWith[2]*12+3) -- display brightness based on With when not stacked
+    g:led(wMonLevel[1],3, wWith[1]*12+3)
+  end
+
+
 -- is loop set????
   g:led(1,5, wStart[With]*12+3)
   g:led(2,5, wEnd[With]*12+3)
@@ -325,6 +357,20 @@ function recLevel(w,p)
   else
     p = (10 -(p-16) -10)/ 10
     crow.ii.wtape[w].rec_level(p)
+  end
+end
+
+function monLevel(w,p)
+  if bCast == 1 then
+    wMonLevel[1] = p
+    wMonLevel[2] = p
+    p = (10 -(p-16) -10)/ 10
+    for i = 1, 2 do
+      crow.ii.wtape[i].monitor_level(p)
+    end
+  else
+    p = (10 -(p-16) -10)/ 10
+    crow.ii.wtape[w].monitor_level(p)
   end
 end
 
