@@ -15,16 +15,10 @@
 -- loop active
 -- loop playhead indicator
 -- erase_strength selector
+-- rec/monitor_level selector
 --
 -- TODO 
--- everything
--- will like to refactor alot of this
--- to do more iterative and indexed 
--- functions (see bottom of script for more info)
--- many functions perform the same exact
--- operations, just on different parameters
--- there should be a way to make it all
--- less verbose
+-- Setup Frequency and Speed relationship and how to get scales from musicutil
 --
 ----------------
 
@@ -47,9 +41,11 @@ wEnd = {0,0}
 wLoop = {0,0}
 
 -- to keep track of W/s data floats and int
-wErase = {11,11}-- holds x position of grid, converted to useful float in erase()
+wErase = {11,11} -- holds x position of grid, converted to useful float in erase()
 wMonLevel = {16,16} -- holds x position of grid, converted to useful float in monLevel()
 wRecLevel = {16,16} -- holds x position of grid, converted to useful float in recLevel() 
+wSpeed = {1,1} -- holds speed
+wFreq = {0,0} -- holds frequency
 lStime = {0,0}  -- to hold timestamp
 lEtime = {0,0}  -- to hold timestamp
 lPos = {1,1}    -- to hold loop position on grid
@@ -65,7 +61,8 @@ function init()
   for i = 1, 2 do
     crow.ii.wtape[i].loop_active(0)
     crow.ii.wtape[i].speed(1)
-    crow.ii.wtape[i].play(0)
+    crow.ii.wtape[i].freq(0)
+    crow.ii.wtape[i].play(0) -- TODO: why is W1 init set to (1)?
     crow.ii.wtape[i].record(0)
     crow.ii.wtape[i].echo_mode(0)
     crow.ii.wtape[i].erase_strength(0.5)
@@ -166,8 +163,14 @@ g.key = function(x,y,z)
         rev(With) -- reverse is a bang
         dir[With] = (dir[With] or 1) * (-1)
       end
+    -- speed selector current W/
+      if x > 5 then
+        wSpeed[With] = x
+        speed(With,x)
+        print(wSpeed[With])
+      end
     end
-
+    
     if y == 5 then
     -- set loop in/out
       if x == 1 then
@@ -187,6 +190,7 @@ g.key = function(x,y,z)
     end
  
     if y == 4 then
+    -- record level selector current W/
       if x > 5 then
         wRecLevel[With] = x
         recLevel(With,x)
@@ -195,6 +199,7 @@ g.key = function(x,y,z)
     end
  
      if y == 3 then
+    -- monitor level selector current W/
       if x > 5 then
         wMonLevel[With] = x
         monLevel(With,x)
@@ -247,6 +252,11 @@ function Lights()
   for i = 1, 11 do 
     g:led(5+i,7,3)
   end
+
+-- iterate through speed indicator and zero it out
+  for i = 1, 11 do 
+    g:led(5+i,6,3)
+  end
   
 -- iterate through recLevel strength indicator and zero it out
   for i = 1, 11 do 
@@ -267,6 +277,13 @@ function Lights()
   else
     g:led(wErase[2],7, wWith[2]*12+3) -- display brightness based on With when not stacked
     g:led(wErase[1],7, wWith[1]*12+3)
+  end
+
+  if wSpeed[1] == wSpeed[2] then --check if value is equal/stacked and display full brightness
+    g:led(wSpeed[2],6, 1*12+3)
+  else
+    g:led(wSpeed[2],6, wWith[2]*12+3) -- display brightness based on With when not stacked
+    g:led(wSpeed[1],6, wWith[1]*12+3)
   end
   
   if wRecLevel[1] == wRecLevel[2] then --check if value is equal/stacked and display full brightness
@@ -308,7 +325,6 @@ function play(w,p)
     for i = 1, 2 do
       wPlay[i] = p
       crow.ii.wtape[i].play(p)
-      
     end
   else
     crow.ii.wtape[w].play(p)
@@ -343,6 +359,20 @@ function erase(w,p)
   else
     p = (10 -(p-16) -10)/ 10
     crow.ii.wtape[w].erase_strength(p)
+  end
+end
+
+function speed(w,p)
+  if bCast == 1 then
+    wSpeed[1] = p
+    wSpeed[2] = p
+    p = (10 -(p-16) -10)/ 10
+    for i = 1, 2 do
+      crow.ii.wtape[i].speed(p)
+    end
+  else
+    p = (10 -(p-16) -10)/ 10
+    crow.ii.wtape[w].speed(p)
   end
 end
 
