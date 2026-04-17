@@ -26,10 +26,11 @@ local musicutil = include 'lib/0___0_musicutil'
 
 With = 1      -- can be 1 or 2 determines which W/ gets commands
 
-wWith = {1,0} -- to check if key is selcted
+wWith = {1,0} -- to check if key is selected
 bCast = 0     -- 0 or 1 determines if calls are sent to both w/s
 w1 = 0        -- to check state of W/1 select key, 1 = pressed
 w2 = 0        -- to check state of W/2 select key, 1 = pressed
+Shift = 0    -- to check if shift key is selected, 1 = pressed
 
 -- to keep track of W/s states 1 or 0
 wPlay = {0,0}
@@ -40,11 +41,12 @@ wStart = {0,0}
 wEnd = {0,0}
 wLoop = {0,0}
 
+
 -- to keep track of W/s data floats and int
 wErase = {11,11} -- holds x position of grid, converted to useful float in erase()
 wMonLevel = {16,16} -- holds x position of grid, converted to useful float in monLevel()
 wRecLevel = {16,16} -- holds x position of grid, converted to useful float in recLevel() 
-wSpeed = {1,1} -- holds speed
+wSpeed = {0,0} -- holds speed
 wFreq = {0,0} -- holds frequency
 lStime = {0,0}  -- to hold timestamp
 lEtime = {0,0}  -- to hold timestamp
@@ -86,50 +88,80 @@ end
 
 g.key = function(x,y,z)
   
-  -- to determine if you are broadcasting to both W/s
-  if w1 == 1 and w2 == 1 then
-    bCast = 1
-    Lights()
-    print('bCast ' .. bCast)
-  end
-  
-  if z == 0 then
-    if y == 8 then
-      if x == 1 then
-        w1 = 0
-        
-      elseif x == 2 then
-        w2 = 0
-        
-      end
-    end
-  end
-  
-  
+ if y == 8 then
   if z == 1 then
-   
-    if y== 8 then
-      -- to determine which W/ is receiving calls
-      if x == 1 then
-        wWith[1] = 1 
-        wWith[2] = 0
-        w1 = 1
-        if bCast then
-          bCast = 0
-        end
-      elseif x == 2 then
-        wWith[1] = 0
-        wWith[2] = 1
-        w2 = 1
-        if bCast then
-          bCast = 0
+    if x == 1 then
+      w1 = 1
+
+      if bCast == 1 then
+        -- from bCast, tap W1 -> W1
+        bCast = 0
+        With = 1
+        wWith = {1,0}
+      else
+        -- normal selection
+        With = 1
+        wWith = {1,0}
+
+        -- if both are now down together, latch broadcast
+        if w2 == 1 then
+          bCast = 1
+          wWith = {1,1}
         end
       end
-      With = x
-      print('bCast ' .. bCast)
-      print("With = " .. With)
+
+      Lights()
+      return
+
+    elseif x == 2 then
+      w2 = 1
+
+      if bCast == 1 then
+        -- from bCast, tap W2 -> W2
+        bCast = 0
+        With = 2
+        wWith = {0,1}
+      else
+        -- normal selection
+        With = 2
+        wWith = {0,1}
+
+        -- if both are now down together, latch broadcast
+        if w1 == 1 then
+          bCast = 1
+          wWith = {1,1}
+        end
+      end
+
+      Lights()
+      return
+
+    elseif x == 16 then
+      Shift = 1 - Shift
+      Lights()
+      return
     end
 
+  elseif z == 0 then
+    if x == 1 then
+      w1 = 0
+    elseif x == 2 then
+      w2 = 0
+    end
+
+    -- release does not change latched mode
+    Lights()
+    return
+  end
+end
+  
+  if Shift == 1 then
+    -- handle shifted behavior only
+    return
+  end
+
+  if z == 1 then
+    
     if y == 7 then
     -- record current W/  
       if x == 1 then
@@ -148,10 +180,8 @@ g.key = function(x,y,z)
         erase(With,x)
         print(wErase[With])
       end
-      
-    end    
-    
-    if y == 6 then 
+        
+    elseif y == 6 then 
     -- play current W/
       if x == 1 then
         wPlay[With] = 1 - wPlay[With]
@@ -159,9 +189,7 @@ g.key = function(x,y,z)
         print("W/" .. With .. " playing " .. wPlay[With] )
     -- reverse current W/
       elseif x == 2 then
-        wRev[With] = 1 - (wRev[With] or 0)
-        rev(With) -- reverse is a bang
-        dir[With] = (dir[With] or 1) * (-1)
+        rev(With)
       end
     -- speed selector current W/
       if x > 5 then
@@ -169,9 +197,8 @@ g.key = function(x,y,z)
         speed(With,x)
         print(wSpeed[With])
       end
-    end
     
-    if y == 5 then
+    elseif y == 5 then
     -- set loop in/out
       if x == 1 then
         wStart[With] = 1
@@ -187,18 +214,16 @@ g.key = function(x,y,z)
         wLoop[With] = 1 - wLoop[With]
         lActive(With,wLoop[With])
       end
-    end
  
-    if y == 4 then
+    elseif y == 4 then
     -- record level selector current W/
       if x > 5 then
         wRecLevel[With] = x
         recLevel(With,x)
         print(wRecLevel[With])
       end
-    end
  
-     if y == 3 then
+    elseif y == 3 then
     -- monitor level selector current W/
       if x > 5 then
         wMonLevel[With] = x
@@ -226,26 +251,30 @@ function Lights()
     g:led(2,8,wWith[2]*12+3)  
   end
   
+-- is grid shifted???
+  g:led(16,8,(Shift or 0)*12+3)
+    
+  
 -- who is playing???
-  g:led(1,6,wPlay[With]*12+3)
+  g:led(1,6,(wPlay[With] or 1) *12+3)
   
 -- is it reversed??? 
-  ----- TODO get rev light to toggle in bCast mode (also look at getting W1 and W2 to flip in bCast if they were initially different: W1 Play == 1 and W2 Play == -1 flip to -1 and 1 respectively)
+  ----- TODO get rev light to toggle in bCast mode (also look at getting W1 and W2 to flip in bCast if they were initially different: W1 Play == 1 and W2 Play == -1 flip to -1 and 1 respectively) -- also, reverse led is getting stuck in bCast
   if bCast == 1 then
-    if dir[1]or dir[2] == -1 then
-      g:led(2,6,1 *12+3)
+    if dir[1] == -1 or dir[2] == -1 then
+      g:led(2,6,15)
     else
-      g:led(2,6,0 *12+3)
+      g:led(2,6,3)
     end
   else
-    g:led(2,6,(wRev[With] or 1) *12+3)
+    g:led(2,6,(wRev[With] or 0) * 12 + 3)
   end
   
 -- who is recording???
-  g:led(1,7,wRec[With] *12+3)
+  g:led(1,7,(wRec[With] or 1) *12+3)
   
 -- is it in echo mode???
-  g:led(2,7, wEcho[With]*12+3)
+  g:led(2,7, (wEcho[With] or 1) *12+3)
   
 -- erase strength?
 -- iterate through erase strength indicator and zero it out
@@ -303,8 +332,8 @@ function Lights()
 
 
 -- is loop set????
-  g:led(1,5, wStart[With]*12+3)
-  g:led(2,5, wEnd[With]*12+3)
+  g:led(1,5, (wStart[With] or 0)*12+3)
+  g:led(2,5, (wEnd[With] or 0)*12+3)
 -- illuminate key for loop activation
   g:led(3,5, 3)
 
@@ -329,12 +358,13 @@ function play(w,p)
   else
     crow.ii.wtape[w].play(p)
   end
-  if wStart[1] == 1 then
+  
+ --[[ if wStart[1] == 1 then
     l1:start()
   end
   if wStart[2] == 1 then
     l2:start()
-  end
+  end ]]--
 end
 
 function rec(w,p)
@@ -418,10 +448,13 @@ end
 function rev(w)
   if bCast == 1 then
     for i = 1, 2 do
-      wRev[i] = p
+      wRev[i] = 1 - (wRev[i] or 0)
+      dir[i] = (dir[i] or 1) * -1
       crow.ii.wtape[i].reverse()
     end
   else
+    wRev[w] = 1 - (wRev[w] or 0)
+    dir[w] = (dir[w] or 1) * -1
     crow.ii.wtape[w].reverse()
   end
 end
