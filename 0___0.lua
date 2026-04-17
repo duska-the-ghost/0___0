@@ -259,7 +259,6 @@ function Lights()
   g:led(1,6,(wPlay[With] or 1) *12+3)
   
 -- is it reversed??? 
-  ----- TODO get rev light to toggle in bCast mode (also look at getting W1 and W2 to flip in bCast if they were initially different: W1 Play == 1 and W2 Play == -1 flip to -1 and 1 respectively) -- also, reverse led is getting stuck in bCast
   if bCast == 1 then
     if dir[1] == -1 or dir[2] == -1 then
       g:led(2,6,15)
