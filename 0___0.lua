@@ -137,6 +137,7 @@ g.key = function(x,y,z)
       return
 
     elseif x == 16 then
+      -- Shift function toggle
       Shift = 1 - Shift
       Lights()
       return
@@ -256,7 +257,7 @@ function Lights()
     
   
 -- who is playing???
-  g:led(1,6,(wPlay[With] or 1) *12+3)
+  g:led(1,6,(wPlay[With] or 1)*12+3)
   
 -- is it reversed??? 
   if bCast == 1 then
@@ -582,6 +583,9 @@ l2.event = function()
   end
 end
 
+-----------------------------------------------------
+-----------------------------------------------------
+-----------------------------------------------------
 -- below is 1a test for storing metros in a list and calling them programatically.
 -- to start the below metro
 -- loop[1]:start()
@@ -598,6 +602,121 @@ loop[1].event = function()
   tester = tester + 1
   print(tester)
 end
+
+-----------------------------------------------------
+-----------------------------------------------------
+-----------------------------------------------------
+-----------------------------------------------------
+-----------------------------------------------------
+-----------------------------------------------------
+-- an algorithm to randomly jumble a loop
+-- taken from wip script REVAEW
+-- built for softcut initally, 
+-- but could possibly work for w/tape?????
+-- and it seems to.
+-- run the newRhythm() function to jumble your loop
+-- currently no way out of it. But still fun
+-----------------------------------------------------
+-----------------------------------------------------
+sampleBufLeng = 0 --200
+
+bufLengMin = 6
+bufLengMax = 40
+newBufLeng = 0
+
+playBack = {}
+playRate = {}
+playPan = {}
+playTime = {}
+playCount = 1
+
+encOrigin = 0
+
+diceRoll = 0
+
+rateRat = { 1/1, 16/15, 9/8, 6/5, 5/4, 4/3, 45/32, 3/2, 8/5, 5/3, 16/9, 15/8}
+rateOct = {0.25, 0.5, 1, 2, 4}
+rateDir = {-1,1}
+
+-- textural variables
+dTime = 0.3
+
+
+playClock = metro.init()
+playClock.time = 1
+playClock.event = function()
+  --softcut.rate(2,playRate[playCount])
+  if playRate[playCount] ~= nil then
+    crow.ii.wtape[1].speed(playRate[playCount])
+  end
+  --softcut.loop_start(2,playBack[playCount]/100)
+  if playBack[playCount] ~= nil then
+    crow.ii.wtape[1].timestamp(playBack[playCount])
+  end
+  
+  --softcut.loop_end(2,(playBack[playCount]/100)+1)
+  --softcut.pan(2,(playPan[playCount]))
+  playClock.time = playTime[playCount]
+  --softcut.play(2,1)
+  playCount = playCount + 1
+  --print(playCount)
+  if playCount > newBufLeng then
+    playCount = 1
+    print("wrap")
+  end
+end
+
+
+function newRhythm()
+  playClock:stop()
+  --clear tables
+  playBack = {}
+  playRate = {}
+  playPan = {}
+  playTime = {}
+  playCount = 1
+  -- generate a random number for newBufLeng, witihin a range of values
+  newBufLeng = math.random(bufLengMin,bufLengMax)
+  
+  -- use newBufLeng and generate a new series of start positions within the range of the samplBufLeng
+  for i = 1, newBufLeng do
+    
+    -- play back order
+    table.insert(playBack,(math.random() * (lEtime[1] - lStime[1]) + lStime[1]))
+    --table.insert(playBack,math.random(0,sampleBufLeng)) 
+    table.insert(playTime, math.random(11,50)/100)
+    --table.insert(playPan,(math.random(1,150)/100)-0.75)
+    
+    -- play back speeds
+    diceRoll = math.random(1,20)
+    if diceRoll > 14 then
+      table.insert(playRate, rateRat[math.random(1,8)] * rateOct[math.random(1,4)] * rateDir[math.random(1,2)])
+    else
+      table.insert(playRate,1)
+    end
+    
+    -- other play back parameters
+    
+  end
+  wLoop[With] = 0
+  lActive(With,wLoop[With])
+  Lights()
+  playClock.time = 0.1
+  playClock:start()
+end
+
+function stopRhythm()
+  playClock:stop()
+  wLoop[With] = 1
+  lActive(With,wLoop[With])
+  crow.ii.wtape[1].speed(1)
+  Lights()
+end
+
+-------------------------------------
+-------------------------------------
+-------------------------------------
+
 
 
 function cleanup()
