@@ -19,6 +19,7 @@
 --
 -- TODO 
 -- Setup Frequency and Speed relationship and how to get scales from musicutil
+-- Crow input could be a way to use CV to select a 'macro' and trigger changes to W1/W2/bCast. An example would be to trigger randomization to parameters, 'freeze', change in 'slew' amount between speeds, etc. (more than what can already happen on the W/ faceplates). see cheat_codes_2 for Crow setup ideas
 --
 ----------------
 
